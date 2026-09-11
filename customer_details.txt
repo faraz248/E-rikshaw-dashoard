@@ -1,0 +1,75 @@
+﻿class CustomerDetailsPage extends StatelessWidget {
+  final Map<String, dynamic> data;
+
+  const CustomerDetailsPage({
+    super.key,
+    required this.data,
+  });
+
+  String _value(String primaryKey, String fallbackKey) {
+    final value = data[primaryKey] ?? data[fallbackKey];
+    return value?.toString() ?? 'N/A';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = _value('Name', 'name');
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          name == 'N/A' ? 'Customer Details' : name,
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _detail('Name', _value('Name', 'name')),
+          _detail('Email', _value('Email', 'email')),
+          _detail('Phone', _value('Phone', 'phone')),
+          _detail('Address', _value('Address', 'address')),
+          _detail(
+            'Vehicle Number',
+            _value('Vehicle Number', 'vehicleNumber'),
+          ),
+          _detail(
+            'Chassis Number',
+            _value('Chassis Number', 'chassisNumber'),
+          ),
+          _detail(
+            'Vehicle Model',
+            _value('Vehicle Model', 'vehicleModel'),
+          ),
+          _detail(
+            'Battery Details',
+            _value('Battery Details', 'batteryDetails'),
+          ),
+          _detail(
+            'EMI Details',
+            _value('Emi Details', 'emiDetails'),
+          ),
+          _detail(
+            'Service History',
+            _value('Service History', 'serviceHistory'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detail(String title, String value) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(value),
+      ),
+    );
+  }
+}
+

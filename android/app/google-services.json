@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "835761615634",
+    "project_id": "erickshawshop-eb247",
+    "storage_bucket": "erickshawshop-eb247.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835761615634:android:ee5b8155f0f3d12dd379cb",
+        "android_client_info": {
+          "package_name": "com.example.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUyqF9xexti-LwyUsFfb4VqGAJzj1a0fA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
