@@ -1,47 +1,57 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
-class CustomerDocumentsPage extends StatefulWidget {
-  final String customerId;
-
-  const CustomerDocumentsPage({super.key, required this.customerId});
+class DocumentsPage extends StatefulWidget {
+  const DocumentsPage({super.key});
 
   @override
-  State<CustomerDocumentsPage> createState() => _CustomerDocumentsPageState();
+  State<DocumentsPage> createState() => _DocumentsPageState();
 }
 
-class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
+class _DocumentsPageState extends State<DocumentsPage> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  String? userId;
 
-  // Future method actual upload ke liye
+  @override
+  void initState() {
+    super.initState();
+    userId = FirebaseAuth.instance.currentUser?.uid;
+  }
+
   Future<void> _uploadDocument(String docType) async {
+    if (userId == null) return;
+
     try {
-      // 1. Pick Image
+      // 1. Camera/Gallery se photo click karwao
       final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality:
-            50, // Image compress kar rahe hain taaki cloud jaldi bhare nahi
+        source: ImageSource.gallery, // CAMERA KI JAGAH GALLERY KAR DIYA
+        imageQuality: 50,
       );
 
-      if (image == null) return; // User ne cancel kar diya
+      if (image == null) return;
 
       setState(() => _isUploading = true);
 
-      // --- MOCK UPLOAD LOGIC ---
-      // Real upload ke liye tujhe FirebaseStorage lagana padega.
-      // Abhi ke liye hum sirf Firestore me document ka naam update kar rahe hain fake URL ke sath.
-      await Future.delayed(
-        const Duration(seconds: 2),
-      ); // Simulating upload time
-      String fakeUrl = "https://fakeurl.com/${image.name}";
+      // 2. Firebase Storage me save karo
+      final String fileName =
+          'kyc/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final Reference storageRef = FirebaseStorage.instance.ref().child(
+        fileName,
+      );
+      final UploadTask uploadTask = storageRef.putFile(File(image.path));
 
-      await FirebaseFirestore.instance
-          .collection('customers')
-          .doc(widget.customerId)
-          .update({'documents.$docType': fakeUrl});
+      final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // 3. Firestore Database me link update karo
+      await FirebaseFirestore.instance.collection('customers').doc(userId).set({
+        'documents': {docType: downloadUrl},
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,7 +64,10 @@ class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
       debugPrint("Upload Error: $e");
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Upload failed: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -63,6 +76,10 @@ class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (userId == null) {
+      return const Scaffold(body: Center(child: Text('User not logged in')));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Documents'),
@@ -77,7 +94,7 @@ class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
                   Text(
-                    'Uploading Document...',
+                    'Uploading securely to cloud...',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -86,21 +103,16 @@ class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
           : StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('customers')
-                  .doc(widget.customerId)
+                  .doc(userId)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return const Center(child: Text('Customer data not found.'));
-                }
-
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                // Defaulting to empty map if documents field doesn't exist
+                final data = snapshot.data?.data() as Map<String, dynamic>?;
                 final docsMap =
-                    (data['documents'] as Map<String, dynamic>?) ?? {};
+                    (data?['documents'] as Map<String, dynamic>?) ?? {};
 
                 return ListView(
                   padding: const EdgeInsets.all(16),
@@ -142,6 +154,7 @@ class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
 
   Widget _buildDocTile(String title, String? url, IconData icon) {
     bool isUploaded = url != null && url.isNotEmpty;
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
@@ -166,12 +179,17 @@ class _CustomerDocumentsPageState extends State<CustomerDocumentsPage> {
           if (!isUploaded) {
             _uploadDocument(title);
           } else {
-            // TODO: Implement viewing the document
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Document viewing logic will be implemented here.',
-                ),
+            // Agar uploaded hai toh usko badi screen par dikhao
+            showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                content: Image.network(url),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
               ),
             );
           }

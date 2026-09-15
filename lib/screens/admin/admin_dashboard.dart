@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'admin_customer_list_page.dart';
 import 'admin_products_page.dart';
 import 'admin_orders_page.dart';
@@ -38,9 +40,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       });
     } catch (e) {
       debugPrint("Error fetching customers: $e");
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -48,11 +48,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard - E-Rickshaw Shop'),
-        backgroundColor: Colors.red[700],
+        title: const Text(
+          'Admin Dashboard 🔐',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.red.shade700,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -64,7 +77,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         return const Iterable<Map<String, dynamic>>.empty();
                       }
                       final String query = textEditingValue.text.toLowerCase();
-
                       return allCustomers.where((customer) {
                         final String name = (customer['name'] ?? '')
                             .toString()
@@ -97,124 +109,97 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               labelText: 'Search Customer by Name or Mobile',
                               prefixIcon: const Icon(Icons.search),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: Colors.grey.shade100,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
                               ),
                             ),
                           );
                         },
                   ),
           ),
+          const SizedBox(height: 5),
+          const Text(
+            'ADMIN ACCESS GRANTED ✅',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 20),
           Expanded(
-            child: Padding(
+            child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _DashboardCard(
-                    icon: Icons.people,
-                    title: 'Manage Customers',
-                    color: Colors.blue,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminCustomerListPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.currency_rupee,
-                    title: 'EMI & Payments',
-                    color: Colors.purple,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminEmiPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.inventory,
-                    title: 'Inventory & Products',
-                    color: Colors.orange,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminProductsPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _DashboardCard(
-                    icon: Icons.assignment,
-                    title: 'Orders & Claims',
-                    color: Colors.green,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminOrdersPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+              children: [
+                _buildListCard(
+                  context,
+                  title: 'Customer Details',
+                  icon: Icons.people,
+                  color: Colors.blue,
+                  page: const AdminCustomerListPage(),
+                ),
+                const SizedBox(height: 12),
+                _buildListCard(
+                  context,
+                  title: 'EMI & Payments',
+                  icon: Icons.payments_outlined,
+                  color: Colors.purple,
+                  page: const AdminEmiPage(),
+                ),
+                const SizedBox(height: 12),
+                _buildListCard(
+                  context,
+                  title: 'Inventory & Products',
+                  icon: Icons.inventory,
+                  color: Colors.orange,
+                  page: const AdminProductsPage(),
+                ),
+                const SizedBox(height: 12),
+                _buildListCard(
+                  context,
+                  title: 'Orders & Claims',
+                  icon: Icons.assignment,
+                  color: Colors.green,
+                  page: const AdminOrdersPage(),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class _DashboardCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _DashboardCard({
-    required this.icon,
-    required this.title,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildListCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget page,
+  }) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 48, color: color),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
         ),
+        leading: CircleAvatar(
+          backgroundColor: color,
+          child: Icon(icon, color: Colors.white),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+        },
       ),
     );
   }

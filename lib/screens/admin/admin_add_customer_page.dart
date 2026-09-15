@@ -1,7 +1,7 @@
-import '../../services/cloudinary_service.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminAddCustomerPage extends StatefulWidget {
@@ -12,205 +12,178 @@ class AdminAddCustomerPage extends StatefulWidget {
 }
 
 class _AdminAddCustomerPageState extends State<AdminAddCustomerPage> {
+  final _formKey = GlobalKey<FormState>();
+  
+  // Controllers
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
-  final vehicleController = TextEditingController();
-  final addressController = TextEditingController();
-
-  String? uploadedImageUrl;
-  bool isUploading = false;
-  bool loading = false;
+  final vehicleNumberController = TextEditingController();
+  
+  File? _imageFile;
+  bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
-    vehicleController.dispose();
-    addressController.dispose();
+    vehicleNumberController.dispose();
     super.dispose();
   }
 
-  Future<void> pickAndUploadImage() async {
-    try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image == null) return;
-
-      setState(() => isUploading = true);
-
-      Uint8List bytes = await image.readAsBytes();
-      String fileName = image.name;
-
-      String? downloadUrl = await CloudinaryService.uploadFile(bytes, fileName);
-
-      if (downloadUrl != null) {
-        setState(() {
-          uploadedImageUrl = downloadUrl;
-          isUploading = false;
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image Uploaded Successfully!')),
-        );
-      } else {
-        setState(() => isUploading = false);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Upload Failed. Try again.')),
-        );
-      }
-    } catch (e) {
-      setState(() => isUploading = false);
-      debugPrint('Error picking image: $e');
+  // Pick Image Logic
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery, 
+      imageQuality: 60, // Compress image to save cloud space
+    );
+    
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
     }
   }
 
+  // Upload and Save Logic
   Future<void> _saveCustomer() async {
-    final name = nameController.text.trim();
-    final phone = phoneController.text.trim();
-
-    if (name.isEmpty || phone.isEmpty) {
+    if (!_formKey.currentState!.validate()) return;
+    if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name aur Phone zaroori hai.')),
+        const SnackBar(content: Text('Please select a photo first!', style: TextStyle(color: Colors.white)), backgroundColor: Colors.red),
       );
       return;
     }
 
-    if (uploadedImageUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload a profile photo or document first!')),
-      );
-      return;
-    }
-
-    setState(() => loading = true);
+    setState(() => _isUploading = true);
 
     try {
+      // 1. Upload Image to Firebase Storage
+      final String fileName = 'customers/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
+      final UploadTask uploadTask = storageRef.putFile(_imageFile!);
+      
+      final TaskSnapshot snapshot = await uploadTask;
+      final String imageUrl = await snapshot.ref.getDownloadURL();
+
+      // 2. Save Data to Firestore
       await FirebaseFirestore.instance.collection('customers').add({
-        'name': name,
-        'phone': phone,
-        'vehicleNumber': vehicleController.text.trim(),
-        'address': addressController.text.trim(),
-        'profileImageUrl': uploadedImageUrl,
-        'addedByAdmin': true,
+        'name': nameController.text.trim(),
+        'phone': phoneController.text.trim(),
+        'vehicleNumber': vehicleNumberController.text.trim(),
+        'profileImageUrl': imageUrl,
+        'pendingAmount': 0,
+        'paidEmi': 0,
+        'totalEmi': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Offline Customer Added Successfully!')),
+        const SnackBar(content: Text('Customer Added Successfully!'), backgroundColor: Colors.green),
       );
-      Navigator.pop(context);
+      Navigator.pop(context); // Go back to dashboard
+
     } catch (e) {
+      debugPrint("Error saving customer: $e");
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Failed to upload: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Offline Customer')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Icon(Icons.person_add, size: 60, color: Colors.blue),
-            const SizedBox(height: 10),
-            const Text(
-              'Ye customer bina App ke database me add hoga.',
-              style: TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            Center(
+      appBar: AppBar(
+        title: const Text('Add Offline Customer'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+      ),
+      body: _isUploading
+          ? const Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    height: 110,
-                    width: 110,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: uploadedImageUrl == null
-                        ? const Center(
-                            child: Text(
-                              'No Image',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(uploadedImageUrl!, fit: BoxFit.cover),
-                          ),
-                  ),
-                  const SizedBox(height: 8),
-                  isUploading
-                      ? const CircularProgressIndicator()
-                      : TextButton.icon(
-                          onPressed: pickAndUploadImage,
-                          icon: const Icon(Icons.upload_file),
-                          label: const Text('Upload Photo / Aadhaar'),
-                        ),
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Uploading Data & Image...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: vehicleController,
-              decoration: const InputDecoration(
-                labelText: 'Vehicle Number',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: addressController,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Address',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: (loading || isUploading) ? null : _saveCustomer,
-                child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Save Customer',
-                        style: TextStyle(fontSize: 16),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    // Image Picker UI
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 150,
+                        width: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: _imageFile != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(_imageFile!, fit: BoxFit.cover),
+                              )
+                            : const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text('Tap to add photo', style: TextStyle(color: Colors.grey)),
+                                ],
+                              ),
                       ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Input Fields
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
+                      validator: (val) => val == null || val.isEmpty ? 'Name is required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.phone)),
+                      validator: (val) => val == null || val.isEmpty ? 'Phone is required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: vehicleNumberController,
+                      decoration: const InputDecoration(labelText: 'Vehicle Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.electric_rickshaw)),
+                      validator: (val) => val == null || val.isEmpty ? 'Vehicle Number is required' : null,
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _saveCustomer,
+                        icon: const Icon(Icons.save),
+                        label: const Text('Save Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

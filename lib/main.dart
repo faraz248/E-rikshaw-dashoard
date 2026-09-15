@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/admin/customer_details_page.dart';
 import 'screens/customer/customer_emi_view.dart';
+import 'screens/admin/admin_dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -847,89 +848,6 @@ class DocumentsPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ============================================================
-// ADMIN DASHBOARD
-// ============================================================
-
-class AdminDashboard extends StatelessWidget {
-  const AdminDashboard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.red,
-        title: const Text(
-          'Admin Dashboard 🔐',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async => await FirebaseAuth.instance.signOut(),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.admin_panel_settings, size: 90, color: Colors.red),
-            const SizedBox(height: 15),
-            const Text(
-              'ADMIN ACCESS GRANTED ✅',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 35),
-            Card(
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.people, color: Colors.white),
-                ),
-                title: const Text(
-                  'Customer Details',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CustomerListPage()),
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            Card(
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.purple,
-                  child: Icon(Icons.payments_outlined, color: Colors.white),
-                ),
-                title: const Text(
-                  'EMI & Payments',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminEmiPage()),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
