@@ -114,17 +114,67 @@ class CustomerDashboard extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Navigation Tile for Documents
+              // Button 1: E-Rickshaw Warranty
+              Card(
+                elevation: 2,
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.electric_rickshaw,
+                    color: Colors.green,
+                  ),
+                  title: const Text(
+                    'My E-Rickshaw',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CustomerBatteryWarrantyPage(customerId: customerId),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Button 2: EMI & Payments
+              Card(
+                elevation: 2,
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.currency_rupee,
+                    color: Colors.purple,
+                  ),
+                  title: const Text(
+                    'EMI & Payments',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomerEmiPage(
+                          customerId: customerId,
+                          customerData:
+                              customerData, // FIXED: Now passing the correct Map
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Button 3: Documents
               Card(
                 elevation: 2,
                 child: ListTile(
                   leading: const Icon(Icons.folder, color: Colors.blue),
                   title: const Text(
-                    'My Documents & Uploads',
+                    'My Documents',
                     style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: const Text(
-                    'Aadhaar, PAN, RC, Insurance manage karein',
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
@@ -133,22 +183,6 @@ class CustomerDashboard extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) =>
                             CustomerDocumentsPage(customerId: customerId),
-                      ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CustomerEmiPage(
-                          customerId: customerId,
-                          customerData: const {},
-                        ),
-                      ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            CustomerBatteryWarrantyPage(customerId: customerId),
                       ),
                     );
                   },

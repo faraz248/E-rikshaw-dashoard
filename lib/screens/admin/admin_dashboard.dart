@@ -1,10 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'admin_customer_list_page.dart';
 import 'admin_products_page.dart';
 import 'admin_orders_page.dart';
+import 'admin_emi_page.dart';
+import 'customer_details_page.dart';
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  List<Map<String, dynamic>> allCustomers = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCustomers();
+  }
+
+  Future<void> fetchCustomers() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('customers')
+          .get();
+      setState(() {
+        allCustomers = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return data;
+        }).toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error fetching customers: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,59 +52,125 @@ class AdminDashboard extends StatelessWidget {
         backgroundColor: Colors.red[700],
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          children: [
-            // Customer Management Tile
-            _DashboardCard(
-              icon: Icons.people,
-              title: 'Manage Customers',
-              color: Colors.blue,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminCustomerListPage(),
-                  ),
-                );
-              },
-            ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Autocomplete<Map<String, dynamic>>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<Map<String, dynamic>>.empty();
+                      }
+                      final String query = textEditingValue.text.toLowerCase();
 
-            // Product & Inventory Tile
-            _DashboardCard(
-              icon: Icons.inventory,
-              title: 'Inventory & Products',
-              color: Colors.orange,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminProductsPage(),
+                      return allCustomers.where((customer) {
+                        final String name = (customer['name'] ?? '')
+                            .toString()
+                            .toLowerCase();
+                        final String phone = (customer['phone'] ?? '')
+                            .toString()
+                            .toLowerCase();
+                        return name.contains(query) || phone.contains(query);
+                      });
+                    },
+                    displayStringForOption: (option) =>
+                        '${option['name'] ?? 'Unknown'} - ${option['phone'] ?? 'No Phone'}',
+                    onSelected: (selection) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CustomerDetailsPage(
+                            customerId: selection['id'],
+                            data: selection,
+                          ),
+                        ),
+                      );
+                    },
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onEditingComplete) {
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: InputDecoration(
+                              labelText: 'Search Customer by Name or Mobile',
+                              prefixIcon: const Icon(Icons.search),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        },
                   ),
-                );
-              },
-            ),
-
-            // Orders & Claims Tile
-            _DashboardCard(
-              icon: Icons.assignment,
-              title: 'Orders & Claims',
-              color: Colors.green,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminOrdersPage(),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                children: [
+                  _DashboardCard(
+                    icon: Icons.people,
+                    title: 'Manage Customers',
+                    color: Colors.blue,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminCustomerListPage(),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                  _DashboardCard(
+                    icon: Icons.currency_rupee,
+                    title: 'EMI & Payments',
+                    color: Colors.purple,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminEmiPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _DashboardCard(
+                    icon: Icons.inventory,
+                    title: 'Inventory & Products',
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminProductsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _DashboardCard(
+                    icon: Icons.assignment,
+                    title: 'Orders & Claims',
+                    color: Colors.green,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminOrdersPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

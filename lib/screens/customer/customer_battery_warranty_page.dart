@@ -79,7 +79,7 @@ class _CustomerBatteryWarrantyPageState
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
           final customerName = data['name'] ?? 'Customer';
-          final batterySpecs = data['batterySpecs'] ?? 'N/A (Not Updated)';
+          final batterySpecs = data['batteryDetails'] ?? 'N/A (Not Updated)';
           final vehicleNo = data['vehicleNumber'] ?? 'N/A';
 
           return ListView(

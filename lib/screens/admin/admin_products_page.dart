@@ -1,69 +1,145 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AdminProductsPage extends StatefulWidget {
+class AdminProductsPage extends StatelessWidget {
   const AdminProductsPage({super.key});
 
-  @override
-  State<AdminProductsPage> createState() => _AdminProductsPageState();
-}
-
-class _AdminProductsPageState extends State<AdminProductsPage> {
   void _showAddProductDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final priceController = TextEditingController();
-    final stockController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController priceController = TextEditingController();
+    final TextEditingController stockController = TextEditingController();
+    String selectedCategory = 'Battery'; // Default option
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Product / Part'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Product Name'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: priceController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Price (₹)'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: stockController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Stock Quantity'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final price = double.tryParse(priceController.text.trim()) ?? 0.0;
-              final stock = int.tryParse(stockController.text.trim()) ?? 0;
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text(
+                'Add New Inventory Item',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Product Name (e.g., Exide 12V)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      items: ['Battery', 'E-Rickshaw', 'Spare Part'].map((
+                        String category,
+                      ) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null)
+                          setState(() => selectedCategory = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Unit Price (₹)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: stockController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Initial Stock Quantity',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade700,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    // Basic Validation
+                    if (nameController.text.trim().isEmpty ||
+                        priceController.text.trim().isEmpty ||
+                        stockController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill all fields!'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
 
-              if (name.isNotEmpty) {
-                await FirebaseFirestore.instance.collection('products').add({
-                  'name': name,
-                  'price': price,
-                  'stock': stock,
-                  'createdAt': FieldValue.serverTimestamp(),
-                });
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('products')
+                          .add({
+                            'name': nameController.text.trim(),
+                            'category': selectedCategory,
+                            'price':
+                                int.tryParse(priceController.text.trim()) ?? 0,
+                            'stock':
+                                int.tryParse(stockController.text.trim()) ?? 0,
+                            'addedAt': FieldValue.serverTimestamp(),
+                          });
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Product Added Successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint("Error adding product: $e");
+                    }
+                  },
+                  child: const Text('Save Product'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -71,73 +147,91 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inventory & Products'),
-        backgroundColor: Colors.orange,
+        title: const Text('Inventory Management'),
+        backgroundColor: Colors.orange.shade700,
         foregroundColor: Colors.white,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddProductDialog(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Product'),
-      ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance.collection('products').snapshots(),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('products')
+            .orderBy('addedAt', descending: true)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final products = snapshot.data?.docs ?? [];
-
-          if (products.isEmpty) {
             return const Center(
               child: Text(
-                'No products added yet.',
+                'Error loading inventory.',
+                style: TextStyle(color: Colors.red),
+              ),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'No products found in inventory.\nClick + to add items.',
+                textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
           }
 
+          final products = snapshot.data!.docs;
+
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             itemCount: products.length,
             itemBuilder: (context, index) {
-              final doc = products[index];
-              final data = doc.data();
-              final name = data['name'] ?? 'Unknown';
-              final price = data['price'] ?? 0;
-              final stock = data['stock'] ?? 0;
+              final data = products[index].data() as Map<String, dynamic>;
+              final name = data['name'] ?? 'Unknown Item';
+              final category = data['category'] ?? 'General';
+              final stock = data['stock']?.toString() ?? '0';
+              final price = data['price']?.toString() ?? '0';
 
               return Card(
-                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.orangeAccent,
-                    child: Icon(Icons.inventory_2, color: Colors.white),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.orange.shade100,
+                    child: Icon(
+                      category.toLowerCase() == 'battery'
+                          ? Icons.battery_charging_full
+                          : category.toLowerCase() == 'e-rickshaw'
+                          ? Icons.electric_rickshaw
+                          : Icons.build,
+                      color: Colors.orange.shade800,
+                    ),
                   ),
                   title: Text(
                     name,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('Price: ₹$price | Stock: $stock units'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('products')
-                          .doc(doc.id)
-                          .delete();
-                    },
+                  subtitle: Text('Category: $category | Stock: $stock'),
+                  trailing: Text(
+                    '₹$price',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
                   ),
                 ),
               );
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddProductDialog(context),
+        backgroundColor: Colors.orange.shade700,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Item'),
       ),
     );
   }
