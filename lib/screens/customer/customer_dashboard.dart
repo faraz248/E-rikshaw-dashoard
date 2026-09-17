@@ -181,8 +181,7 @@ class CustomerDashboard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            CustomerDocumentsPage(customerId: customerId),
+                        builder: (context) => const DocumentsPage(),
                       ),
                     );
                   },

@@ -30,7 +30,59 @@ class ERickshawShop extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'E-Rickshaw Shop',
-      theme: ThemeData(colorSchemeSeed: Colors.green, useMaterial3: true),
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0F766E),
+          primary: const Color(0xFF0F172A),
+          surface: Colors.white,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF0F172A),
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            elevation: 0,
+            backgroundColor: const Color(0xFF0F172A),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF1F5F9),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
+          ),
+        ),
+      ),
       home: const AuthGate(),
     );
   }

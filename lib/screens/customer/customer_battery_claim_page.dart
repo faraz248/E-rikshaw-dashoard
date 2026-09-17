@@ -65,7 +65,7 @@ class _CustomerBatteryClaimPageState extends State<CustomerBatteryClaimPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      await FirebaseFirestore.instance.collection('claims').add({
+      await FirebaseFirestore.instance.collection('battery_claims').add({
         'customerId': userId,
         'customerName': userName,
         'vehicleNumber': vehicleNo,
