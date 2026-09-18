@@ -154,7 +154,7 @@ class AdminOrdersPage extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             itemCount: claims.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final data = claims[index].data() as Map<String, dynamic>? ?? {};
               final claimId = claims[index].id;

@@ -1,237 +1,385 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../theme/app_theme.dart';
 
-class AdminProductsPage extends StatelessWidget {
+class AdminProductsPage extends StatefulWidget {
   const AdminProductsPage({super.key});
 
-  void _showAddProductDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController priceController = TextEditingController();
-    final TextEditingController stockController = TextEditingController();
-    String selectedCategory = 'Battery'; // Default option
+  @override
+  State<AdminProductsPage> createState() => _AdminProductsPageState();
+}
 
-    showDialog(
+class _AdminProductsPageState extends State<AdminProductsPage> {
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _stockController = TextEditingController();
+  final _descController = TextEditingController();
+  String _selectedCategory = 'Batteries';
+  bool _isSaving = false;
+
+  final List<String> _categories = [
+    'Batteries',
+    'Spare Parts & Motors',
+    'Chargers & Controllers',
+    'Full Vehicles (E-Rickshaw)',
+    'Accessories',
+  ];
+
+  void _showAddProductModal(BuildContext context) {
+    _nameController.clear();
+    _priceController.clear();
+    _stockController.clear();
+    _descController.clear();
+    _selectedCategory = 'Batteries';
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text(
-                'Add New Inventory Item',
-                style: TextStyle(fontWeight: FontWeight.bold),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Add Inventory Item', style: AppText.heading),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Product Name (e.g., Exide 12V)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: selectedCategory,
-                      decoration: InputDecoration(
-                        labelText: 'Category',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items: ['Battery', 'E-Rickshaw', 'Spare Part'].map((
-                        String category,
-                      ) {
-                        return DropdownMenuItem(
-                          value: category,
-                          child: Text(category),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null)
-                          setState(() => selectedCategory = value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: priceController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Unit Price (₹)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: stockController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Initial Stock Quantity',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Item / Product Name',
+                  prefixIcon: const Icon(
+                    Icons.inventory_2_outlined,
+                    color: AppColors.slate500,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.slate100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                ElevatedButton(
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  filled: true,
+                  fillColor: AppColors.slate100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: _categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setModalState(() => _selectedCategory = val);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Price (₹)',
+                        prefixIcon: const Icon(
+                          Icons.currency_rupee_rounded,
+                          color: AppColors.slate500,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.slate100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stockController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Stock Units',
+                        prefixIcon: const Icon(
+                          Icons.format_list_numbered_rounded,
+                          color: AppColors.slate500,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.slate100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _descController,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  labelText: 'Description / Model compatibility',
+                  filled: true,
+                  fillColor: AppColors.slate100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade700,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.slate900,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  onPressed: () async {
-                    // Basic Validation
-                    if (nameController.text.trim().isEmpty ||
-                        priceController.text.trim().isEmpty ||
-                        stockController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please fill all fields!'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    try {
-                      await FirebaseFirestore.instance
-                          .collection('products')
-                          .add({
-                            'name': nameController.text.trim(),
-                            'category': selectedCategory,
-                            'price':
-                                int.tryParse(priceController.text.trim()) ?? 0,
-                            'stock':
-                                int.tryParse(stockController.text.trim()) ?? 0,
-                            'addedAt': FieldValue.serverTimestamp(),
-                          });
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Product Added Successfully!'),
-                            backgroundColor: Colors.green,
+                  onPressed: _isSaving ? null : () => _addProduct(ctx),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
                           ),
-                        );
-                      }
-                    } catch (e) {
-                      debugPrint("Error adding product: $e");
-                    }
-                  },
-                  child: const Text('Save Product'),
+                        )
+                      : const Text(
+                          'Add to Stock',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
-              ],
-            );
-          },
-        );
-      },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  Future<void> _addProduct(BuildContext modalCtx) async {
+    if (_nameController.text.trim().isEmpty ||
+        _priceController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter valid product name and price'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      await FirebaseFirestore.instance.collection('products').add({
+        'name': _nameController.text.trim(),
+        'category': _selectedCategory,
+        'price': num.tryParse(_priceController.text.trim()) ?? 0,
+        'stock': int.tryParse(_stockController.text.trim()) ?? 0,
+        'description': _descController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      if (!modalCtx.mounted) return;
+
+      Navigator.of(modalCtx).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.emerald600,
+          content: Text('Inventory item added successfully!'),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.red500,
+            content: Text('Error: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.slate100,
       appBar: AppBar(
-        title: const Text('Inventory Management'),
-        backgroundColor: Colors.orange.shade700,
+        title: const Text('Spare Parts & Stock', style: AppText.heading),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.slate900,
         foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_shopping_cart_rounded),
+        label: const Text('Add Stock Item'),
+        onPressed: () => _showAddProductModal(context),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .orderBy('addedAt', descending: true)
-            .snapshots(),
+        stream: FirebaseFirestore.instance.collection('products').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
             return const Center(
-              child: Text(
-                'Error loading inventory.',
-                style: TextStyle(color: Colors.red),
-              ),
+              child: CircularProgressIndicator(color: AppColors.emerald600),
             );
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No products found in inventory.\nClick + to add items.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+          final docs = snapshot.data?.docs ?? [];
+
+          if (docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No Items in Inventory',
+                    style: AppText.subHeading,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Add batteries, parts, and chargers to manage dealership stock.',
+                    style: AppText.caption,
+                  ),
+                ],
               ),
             );
           }
-
-          final products = snapshot.data!.docs;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: products.length,
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
             itemBuilder: (context, index) {
-              final data = products[index].data() as Map<String, dynamic>;
-              final name = data['name'] ?? 'Unknown Item';
-              final category = data['category'] ?? 'General';
-              final stock = data['stock']?.toString() ?? '0';
-              final price = data['price']?.toString() ?? '0';
+              final product = docs[index].data() as Map<String, dynamic>;
+              final name = (product['name'] ?? 'Product').toString();
+              final category = (product['category'] ?? 'Parts').toString();
+              final price = product['price'] ?? 0;
+              final stock = product['stock'] ?? 0;
 
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.orange.shade100,
-                    child: Icon(
-                      category.toLowerCase() == 'battery'
-                          ? Icons.battery_charging_full
-                          : category.toLowerCase() == 'e-rickshaw'
-                          ? Icons.electric_rickshaw
-                          : Icons.build,
-                      color: Colors.orange.shade800,
+              final bool isLowStock = (stock is num) && stock < 3;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.slate100,
+                      child: Icon(
+                        category == 'Batteries'
+                            ? Icons.battery_charging_full_rounded
+                            : Icons.build_circle_outlined,
+                        color: AppColors.slate800,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text('Category: $category | Stock: $stock'),
-                  trailing: Text(
-                    '₹$price',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: AppText.subHeading),
+                          const SizedBox(height: 2),
+                          Text(category, style: AppText.caption),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹$price',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.emerald600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isLowStock
+                                ? AppColors.red500.withValues(alpha: 0.1)
+                                : AppColors.emerald600.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$stock in stock',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isLowStock
+                                  ? AppColors.red500
+                                  : AppColors.emerald600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddProductDialog(context),
-        backgroundColor: Colors.orange.shade700,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Item'),
       ),
     );
   }
