@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'customer_documents_page.dart';
 import 'customer_battery_warranty_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CustomerDashboard extends StatelessWidget {
   final String customerPhone;
@@ -181,7 +182,10 @@ class CustomerDashboard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const DocumentsPage(),
+                        builder: (context) => CustomerDocumentsPage(
+                          customerId:
+                              FirebaseAuth.instance.currentUser?.uid ?? '',
+                        ),
                       ),
                     );
                   },
