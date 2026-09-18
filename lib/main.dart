@@ -1,7 +1,5 @@
 ﻿import 'screens/admin/admin_add_customer_page.dart';
-
 import 'screens/customer/customer_battery_claim_page.dart';
-import 'screens/admin/admin_emi_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
