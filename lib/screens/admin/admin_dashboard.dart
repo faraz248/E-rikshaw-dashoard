@@ -47,43 +47,75 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9), // AppColors.slate100
       appBar: AppBar(
         title: const Text(
-          'Admin Dashboard 🔐',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Admin Dashboard',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5),
         ),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A), // AppColors.slate900
+        elevation: 0,
         actions: [
-          IconButton(
-            tooltip: 'Logout',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              tooltip: 'Logout',
+              icon: const Icon(Icons.logout, color: Colors.redAccent, size: 22),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+              },
+            ),
           ),
         ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Autocomplete<Map<String, dynamic>>(
+          // Header Section
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+              boxShadow: [
+                BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF0F766E), size: 28),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Welcome Back, Admin',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (isLoading)
+                  const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                else
+                  Autocomplete<Map<String, dynamic>>(
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       if (textEditingValue.text.isEmpty) {
                         return const Iterable<Map<String, dynamic>>.empty();
                       }
                       final String query = textEditingValue.text.toLowerCase();
                       return allCustomers.where((customer) {
-                        final String name = (customer['name'] ?? '')
-                            .toString()
-                            .toLowerCase();
-                        final String phone = (customer['phone'] ?? '')
-                            .toString()
-                            .toLowerCase();
+                        final String name = (customer['name'] ?? '').toString().toLowerCase();
+                        final String phone = (customer['phone'] ?? '').toString().toLowerCase();
                         return name.contains(query) || phone.contains(query);
                       });
                     },
@@ -100,69 +132,119 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                       );
                     },
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onEditingComplete) {
-                          return TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            decoration: InputDecoration(
-                              labelText: 'Search Customer by Name or Mobile',
-                              prefixIcon: const Icon(Icons.search),
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
-                              ),
+                    fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            )
+                          ],
+                        ),
+                        child: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            hintText: 'Search Customer by Name or Mobile...',
+                            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF0F766E)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
-                          );
-                        },
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'ADMIN ACCESS GRANTED ✅',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
+              ],
             ),
           ),
-          const SizedBox(height: 20),
+          
+          const SizedBox(height: 24),
+          
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              'Manage Store',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.blueGrey.shade800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: GridView.count(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
               children: [
-                _buildListCard(
+                _buildGridCard(
                   context,
-                  title: 'Customer Details',
-                  icon: Icons.people,
-                  color: Colors.blue,
+                  title: 'Customers',
+                  subtitle: 'Directory',
+                  icon: Icons.people_alt_rounded,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   page: const AdminCustomerListPage(),
                 ),
-                const SizedBox(height: 12),
-                _buildListCard(
+                _buildGridCard(
                   context,
-                  title: 'EMI & Payments',
-                  icon: Icons.payments_outlined,
-                  color: Colors.purple,
+                  title: 'EMI / Dues',
+                  subtitle: 'Payments',
+                  icon: Icons.account_balance_wallet_rounded,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   page: const AdminEmiPage(),
                 ),
-                const SizedBox(height: 12),
-                _buildListCard(
+                _buildGridCard(
                   context,
-                  title: 'Inventory & Products',
-                  icon: Icons.inventory,
-                  color: Colors.orange,
+                  title: 'Inventory',
+                  subtitle: 'Stock & Parts',
+                  icon: Icons.inventory_2_rounded,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   page: const AdminProductsPage(),
                 ),
-                const SizedBox(height: 12),
-                _buildListCard(
+                _buildGridCard(
                   context,
-                  title: 'Battery Claims',
-                  icon: Icons.battery_alert,
-                  color: Colors.green,
+                  title: 'Battery',
+                  subtitle: 'Warranty Claims',
+                  icon: Icons.battery_alert_rounded,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   page: const AdminOrdersPage(),
                 ),
               ],
@@ -173,33 +255,74 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildListCard(
+  Widget _buildGridCard(
     BuildContext context, {
     required String title,
+    required String subtitle,
     required IconData icon,
-    required Color color,
+    required Gradient gradient,
     required Widget page,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        leading: CircleAvatar(
-          backgroundColor: color,
-          child: Icon(icon, color: Colors.white),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => page));
         },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.colors.first.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
