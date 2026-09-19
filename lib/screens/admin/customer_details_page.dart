@@ -93,7 +93,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 MaterialPageRoute(
                   builder: (_) => CustomerEditPage(
                     customerId: widget.customerId,
-                    initialData: currentData,
                   ),
                 ),
               );
