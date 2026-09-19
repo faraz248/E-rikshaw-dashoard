@@ -160,8 +160,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 const SizedBox(height: 12),
                 _buildListCard(
                   context,
-                  title: 'Orders & Claims',
-                  icon: Icons.assignment,
+                  title: 'Battery Claims',
+                  icon: Icons.battery_alert,
                   color: Colors.green,
                   page: const AdminOrdersPage(),
                 ),

@@ -89,13 +89,12 @@ class AdminOrdersPage extends StatelessWidget {
     );
   }
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA),
       appBar: AppBar(
         title: const Text(
-          'Warranty & Claims Ledger',
+          'Battery Claims Management',
           style: TextStyle(
             fontSize: 19,
             fontWeight: FontWeight.w700,
@@ -110,6 +109,7 @@ class AdminOrdersPage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('battery_claims')
+            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -159,23 +159,11 @@ class AdminOrdersPage extends StatelessWidget {
               final data = claims[index].data() as Map<String, dynamic>? ?? {};
               final claimId = claims[index].id;
 
-              final customerName =
-                  (data['customerName'] ??
-                          data['name'] ??
-                          data['userName'] ??
-                          'Customer')
-                      .toString();
-              final vehicleNumber =
-                  (data['vehicleNumber'] ??
-                          data['vehicleNo'] ??
-                          'Unknown Vehicle')
-                      .toString();
-              final issue =
-                  (data['issueDescription'] ??
-                          data['issue'] ??
-                          data['problem'] ??
-                          'No issue described')
-                      .toString();
+              final customerName = (data['customerName'] ?? 'Unknown Customer').toString();
+              final vehicleNumber = (data['vehicleNumber'] ?? 'Unknown Vehicle').toString();
+              final issueCategory = (data['issueCategory'] ?? 'N/A').toString();
+              final batterySerial = (data['batterySerial'] ?? 'N/A').toString();
+              final issueDesc = (data['issueDescription'] ?? 'No issue described').toString();
               final status = (data['status'] ?? 'Pending').toString();
 
               Color badgeBg;
@@ -198,91 +186,126 @@ class AdminOrdersPage extends StatelessWidget {
                   badgeText = const Color(0xFFB06000);
               }
 
-              return InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => _showStatusUpdateSheet(context, claimId, status),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.black.withValues(alpha: 0.06),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.06),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: const Color(0xFFF1F5F9),
-                                child: Text(
-                                  customerName.isNotEmpty
-                                      ? customerName[0].toUpperCase()
-                                      : 'C',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF334155),
-                                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: const Color(0xFFF1F5F9),
+                              child: Text(
+                                customerName.isNotEmpty
+                                    ? customerName[0].toUpperCase()
+                                    : 'C',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF334155),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    customerName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
-                                      color: Color(0xFF0F172A),
-                                    ),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  customerName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    color: Color(0xFF0F172A),
                                   ),
-                                  Text(
-                                    vehicleNumber,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                ),
+                                Text(
+                                  vehicleNumber,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            status,
+                            style: TextStyle(
+                              color: badgeText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                             ),
-                            decoration: BoxDecoration(
-                              color: badgeBg,
-                              borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    
+                    // Battery Details Section
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Battery Serial', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                const SizedBox(height: 2),
+                                Text(batterySerial, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
                             ),
-                            child: Text(
-                              status,
-                              style: TextStyle(
-                                color: badgeText,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Issue Category', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                const SizedBox(height: 2),
+                                Text(issueCategory, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // Description
+                    if (issueDesc.isNotEmpty)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
@@ -291,7 +314,7 @@ class AdminOrdersPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          issue,
+                          issueDesc,
                           style: const TextStyle(
                             fontSize: 13.5,
                             color: Color(0xFF334155),
@@ -299,28 +322,48 @@ class AdminOrdersPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 10),
+                    const SizedBox(height: 14),
+                    
+                    // Action Buttons for Accept / Reject
+                    if (status.toLowerCase() == 'pending')
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text(
-                            'Tap to change status',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: Colors.grey.shade500,
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                              label: const Text('Reject', style: TextStyle(color: Colors.red)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => _updateClaimStatus(context, claimId, 'Rejected'),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.edit_outlined,
-                            size: 13,
-                            color: Colors.grey.shade500,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.check, color: Colors.white, size: 18),
+                              label: const Text('Accept', style: TextStyle(color: Colors.white)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => _updateClaimStatus(context, claimId, 'Approved'),
+                            ),
                           ),
                         ],
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text('Change Status'),
+                          style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700),
+                          onPressed: () => _showStatusUpdateSheet(context, claimId, status),
+                        ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               );
             },
@@ -328,5 +371,25 @@ class AdminOrdersPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _updateClaimStatus(BuildContext context, String claimId, String status) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('battery_claims')
+          .doc(claimId)
+          .update({'status': status});
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Claim marked as $status')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating: $e')),
+        );
+      }
+    }
   }
 }
