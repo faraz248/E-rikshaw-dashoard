@@ -79,6 +79,8 @@ class AdminBatteryClaimsPage extends StatelessWidget {
 
               final customerName = data['customerName'] ?? 'Unknown Customer';
               final vehicleNumber = data['vehicleNumber'] ?? 'N/A';
+              final issueCategory = data['issueCategory'] ?? 'N/A';
+              final batterySerial = data['batterySerial'] ?? 'N/A';
               final issue = data['issueDescription'] ?? '';
               final status = data['status'] ?? 'Pending';
 
@@ -95,7 +97,7 @@ class AdminBatteryClaimsPage extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    'Vehicle: $vehicleNumber\nIssue: $issue\nStatus: $status',
+                    'Vehicle: $vehicleNumber\nSerial: $batterySerial\nCategory: $issueCategory\nIssue: $issue\nStatus: $status',
                   ),
                   trailing: ElevatedButton(
                     style: ElevatedButton.styleFrom(

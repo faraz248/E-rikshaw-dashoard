@@ -40,13 +40,18 @@ class _CustomerBatteryClaimPageState extends State<CustomerBatteryClaimPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      await FirebaseFirestore.instance.collection('orders').add({
+      final userDoc = await FirebaseFirestore.instance.collection('customers').doc(customerUid).get();
+      final userData = userDoc.data() ?? {};
+
+      await FirebaseFirestore.instance.collection('battery_claims').add({
         'customerId': customerUid,
+        'customerName': userData['name'] ?? 'Unknown Customer',
+        'vehicleNumber': userData['vehicleNumber'] ?? 'Unknown Vehicle',
         'claimType': 'Battery Warranty',
         'issueCategory': _selectedIssueType,
         'batterySerial': _batterySerialController.text.trim().toUpperCase(),
-        'description': _issueController.text.trim(),
-        'status': 'Pending Verification',
+        'issueDescription': _issueController.text.trim(),
+        'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -241,7 +246,7 @@ class _CustomerBatteryClaimPageState extends State<CustomerBatteryClaimPage> {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('orders')
+            .collection('battery_claims')
             .where('customerId', isEqualTo: customerUid)
             .snapshots(),
         builder: (context, snapshot) {
@@ -350,10 +355,10 @@ class _CustomerBatteryClaimPageState extends State<CustomerBatteryClaimPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if ((claim['description'] ?? '').toString().isNotEmpty) ...[
+                    if ((claim['issueDescription'] ?? '').toString().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        claim['description'],
+                        claim['issueDescription'],
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.slate500,
