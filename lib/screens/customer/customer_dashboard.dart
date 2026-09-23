@@ -17,7 +17,11 @@ class CustomerDashboard extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'My Dashboard',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
         ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF0F172A),
@@ -54,11 +58,19 @@ class CustomerDashboard extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange.shade300),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 64,
+                      color: Colors.orange.shade300,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Account Not Found',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -78,9 +90,8 @@ class CustomerDashboard extends StatelessWidget {
 
           final name = customerData['name'] ?? 'User';
           final vehicle = customerData['vehicleNumber'] ?? 'N/A';
-          final chassis = customerData['chassisNumber'] ?? 'N/A';
+
           final pendingAmount = customerData['pendingAmount'] ?? 0;
-          final address = customerData['address'] ?? 'N/A';
 
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -90,7 +101,9 @@ class CustomerDashboard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                    backgroundColor: const Color(
+                      0xFF0F766E,
+                    ).withValues(alpha: 0.1),
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : 'U',
                       style: const TextStyle(
@@ -107,7 +120,10 @@ class CustomerDashboard extends StatelessWidget {
                       children: [
                         Text(
                           'Welcome back,',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
                         ),
                         Text(
                           '$name 👋',
@@ -130,19 +146,26 @@ class CustomerDashboard extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: pendingAmount > 0 
-                      ? [const Color(0xFFEF4444), const Color(0xFFB91C1C)] // Red gradient if dues exist
-                      : [const Color(0xFF10B981), const Color(0xFF059669)], // Green gradient if no dues
+                    colors: pendingAmount > 0
+                        ? [
+                            const Color(0xFFEF4444),
+                            const Color(0xFFB91C1C),
+                          ] // Red gradient if dues exist
+                        : [
+                            const Color(0xFF10B981),
+                            const Color(0xFF059669),
+                          ], // Green gradient if no dues
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: (pendingAmount > 0 ? Colors.red : Colors.green).withValues(alpha: 0.3),
+                      color: (pendingAmount > 0 ? Colors.red : Colors.green)
+                          .withValues(alpha: 0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
-                    )
+                    ),
                   ],
                 ),
                 child: Column(
@@ -153,17 +176,28 @@ class CustomerDashboard extends StatelessWidget {
                       children: [
                         Text(
                           'Outstanding Dues',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             pendingAmount > 0 ? 'Action Required' : 'All Clear',
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -181,20 +215,28 @@ class CustomerDashboard extends StatelessWidget {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(Icons.electric_rickshaw_rounded, color: Colors.white.withValues(alpha: 0.8), size: 16),
+                        Icon(
+                          Icons.electric_rickshaw_rounded,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           vehicle,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               Text(
                 'Services & Support',
                 style: TextStyle(
@@ -204,7 +246,7 @@ class CustomerDashboard extends StatelessWidget {
                   letterSpacing: -0.3,
                 ),
               ),
-              
+
               const SizedBox(height: 16),
 
               // Action Menu Items
@@ -216,11 +258,14 @@ class CustomerDashboard extends StatelessWidget {
                 iconColor: const Color(0xFF0F766E),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => CustomerBatteryWarrantyPage(customerId: customerId)),
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        CustomerBatteryWarrantyPage(customerId: customerId),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               _buildActionCard(
                 context,
                 title: 'EMI & Payments',
@@ -229,11 +274,16 @@ class CustomerDashboard extends StatelessWidget {
                 iconColor: const Color(0xFF8B5CF6),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => CustomerEmiPage(customerId: customerId, customerData: customerData)),
+                  MaterialPageRoute(
+                    builder: (_) => CustomerEmiPage(
+                      customerId: customerId,
+                      customerData: customerData,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               _buildActionCard(
                 context,
                 title: 'My Documents',
@@ -242,7 +292,11 @@ class CustomerDashboard extends StatelessWidget {
                 iconColor: const Color(0xFF3B82F6),
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => CustomerDocumentsPage(customerId: FirebaseAuth.instance.currentUser?.uid ?? '')),
+                  MaterialPageRoute(
+                    builder: (_) => CustomerDocumentsPage(
+                      customerId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -294,7 +348,11 @@ class CustomerDashboard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -304,7 +362,11 @@ class CustomerDashboard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade400),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: Colors.grey.shade400,
+            ),
           ],
         ),
       ),

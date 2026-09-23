@@ -89,6 +89,7 @@ class AdminOrdersPage extends StatelessWidget {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FA),
@@ -154,16 +155,19 @@ class AdminOrdersPage extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             itemCount: claims.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final data = claims[index].data() as Map<String, dynamic>? ?? {};
               final claimId = claims[index].id;
 
-              final customerName = (data['customerName'] ?? 'Unknown Customer').toString();
-              final vehicleNumber = (data['vehicleNumber'] ?? 'Unknown Vehicle').toString();
+              final customerName =
+                  (data['customerName'] ?? 'Unknown Customer').toString();
+              final vehicleNumber =
+                  (data['vehicleNumber'] ?? 'Unknown Vehicle').toString();
               final issueCategory = (data['issueCategory'] ?? 'N/A').toString();
               final batterySerial = (data['batterySerial'] ?? 'N/A').toString();
-              final issueDesc = (data['issueDescription'] ?? 'No issue described').toString();
+              final issueDesc =
+                  (data['issueDescription'] ?? 'No issue described').toString();
               final status = (data['status'] ?? 'Pending').toString();
 
               Color badgeBg;
@@ -268,7 +272,7 @@ class AdminOrdersPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    
+
                     // Battery Details Section
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -283,9 +287,21 @@ class AdminOrdersPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Battery Serial', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                const Text(
+                                  'Battery Serial',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
-                                Text(batterySerial, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text(
+                                  batterySerial,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -293,9 +309,21 @@ class AdminOrdersPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Issue Category', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                                const Text(
+                                  'Issue Category',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
-                                Text(issueCategory, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text(
+                                  issueCategory,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -303,7 +331,7 @@ class AdminOrdersPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    
+
                     // Description
                     if (issueDesc.isNotEmpty)
                       Container(
@@ -323,32 +351,58 @@ class AdminOrdersPage extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 14),
-                    
+
                     // Action Buttons for Accept / Reject
                     if (status.toLowerCase() == 'pending')
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              icon: const Icon(Icons.close, color: Colors.red, size: 18),
-                              label: const Text('Reject', style: TextStyle(color: Colors.red)),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Reject',
+                                style: TextStyle(color: Colors.red),
+                              ),
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: Colors.red),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              onPressed: () => _updateClaimStatus(context, claimId, 'Rejected'),
+                              onPressed: () => _updateClaimStatus(
+                                context,
+                                claimId,
+                                'Rejected',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                              label: const Text('Accept', style: TextStyle(color: Colors.white)),
+                              icon: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Accept',
+                                style: TextStyle(color: Colors.white),
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              onPressed: () => _updateClaimStatus(context, claimId, 'Approved'),
+                              onPressed: () => _updateClaimStatus(
+                                context,
+                                claimId,
+                                'Approved',
+                              ),
                             ),
                           ),
                         ],
@@ -359,8 +413,11 @@ class AdminOrdersPage extends StatelessWidget {
                         child: TextButton.icon(
                           icon: const Icon(Icons.edit, size: 16),
                           label: const Text('Change Status'),
-                          style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700),
-                          onPressed: () => _showStatusUpdateSheet(context, claimId, status),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey.shade700,
+                          ),
+                          onPressed: () =>
+                              _showStatusUpdateSheet(context, claimId, status),
                         ),
                       ),
                   ],
@@ -373,22 +430,26 @@ class AdminOrdersPage extends StatelessWidget {
     );
   }
 
-  Future<void> _updateClaimStatus(BuildContext context, String claimId, String status) async {
+  Future<void> _updateClaimStatus(
+    BuildContext context,
+    String claimId,
+    String status,
+  ) async {
     try {
       await FirebaseFirestore.instance
           .collection('battery_claims')
           .doc(claimId)
           .update({'status': status});
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Claim marked as $status')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Claim marked as $status')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating: $e')));
       }
     }
   }

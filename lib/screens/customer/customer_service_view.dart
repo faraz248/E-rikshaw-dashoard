@@ -244,8 +244,8 @@ class _CustomerServiceViewState extends State<CustomerServiceView> {
             itemCount: tickets.length,
             itemBuilder: (context, index) {
               final ticket = tickets[index].data() as Map<String, dynamic>;
-              final serviceType = (ticket['serviceType'] ?? 'General Service')
-                  .toString();
+              final serviceType =
+                  (ticket['serviceType'] ?? 'General Service').toString();
               final status = (ticket['status'] ?? 'Requested').toString();
               final desc = (ticket['issueDescription'] ?? '').toString();
 
@@ -304,7 +304,7 @@ class _CustomerServiceViewState extends State<CustomerServiceView> {
                       const SizedBox(height: 8),
                       Text(
                         desc,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.slate800,
                         ),

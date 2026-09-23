@@ -1,12 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../theme/app_theme.dart';
+import 'package:flutter/material.dart';
 
 class CustomerEditPage extends StatefulWidget {
-  final String? customerId;
-  final Map<String, dynamic>? initialData;
+  final String customerId;
 
-  const CustomerEditPage({super.key, this.customerId, this.initialData});
+  const CustomerEditPage({super.key, required this.customerId});
 
   @override
   State<CustomerEditPage> createState() => _CustomerEditPageState();
@@ -14,259 +12,286 @@ class CustomerEditPage extends StatefulWidget {
 
 class _CustomerEditPageState extends State<CustomerEditPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _vehicleNoController = TextEditingController();
-  final _modelController = TextEditingController();
-  final _pendingAmountController = TextEditingController();
-  final _totalEmiController = TextEditingController();
-  final _rcUrlController = TextEditingController();
 
+  // Personal Info
+  late TextEditingController _nameController;
+  late TextEditingController _fatherNameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _addressController;
+
+  // Vehicle Info
+  late TextEditingController _modelController;
+  late TextEditingController _vehicleNoController;
+  late TextEditingController _chassisController;
+  late TextEditingController _batteryModelController;
+  late TextEditingController _batteryNoController;
+  late TextEditingController _purchaseDateController;
+
+  // Ledger / Finance Info
+  late TextEditingController _totalAmountController;
+  late TextEditingController _pendingAmountController;
+  late TextEditingController _monthlyEmiController;
+  late TextEditingController _financerController;
+
+  bool _isLoading = true;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.customerId != null) {
-      _loadExistingData();
+    _nameController = TextEditingController();
+    _fatherNameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _addressController = TextEditingController();
+
+    _modelController = TextEditingController();
+    _vehicleNoController = TextEditingController();
+    _chassisController = TextEditingController();
+    _batteryModelController = TextEditingController();
+    _batteryNoController = TextEditingController();
+    _purchaseDateController = TextEditingController();
+
+    _totalAmountController = TextEditingController();
+    _pendingAmountController = TextEditingController();
+    _monthlyEmiController = TextEditingController();
+    _financerController = TextEditingController();
+
+    _loadCustomerData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _fatherNameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _modelController.dispose();
+    _vehicleNoController.dispose();
+    _chassisController.dispose();
+    _batteryModelController.dispose();
+    _batteryNoController.dispose();
+    _purchaseDateController.dispose();
+    _totalAmountController.dispose();
+    _pendingAmountController.dispose();
+    _monthlyEmiController.dispose();
+    _financerController.dispose();
+    super.dispose();
+  }
+
+  String _getVal(Map<String, dynamic> data, String k1, String k2) {
+    return (data[k1] ?? data[k2] ?? '').toString();
+  }
+
+  Future<void> _loadCustomerData() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('Customers')
+          .doc(widget.customerId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() ?? {};
+        _nameController.text = _getVal(data, 'name', 'Name');
+        _fatherNameController.text = _getVal(data, 'fatherName', 'Father Name');
+        _phoneController.text = _getVal(data, 'phone', 'Phone');
+        _addressController.text = _getVal(data, 'address', 'Address');
+
+        _modelController.text = _getVal(data, 'vehicleModel', 'Vehicle Model');
+        _vehicleNoController.text =
+            _getVal(data, 'vehicleNumber', 'Vehicle Number');
+        _chassisController.text =
+            _getVal(data, 'chassisNumber', 'Chassis Number');
+        _batteryModelController.text =
+            _getVal(data, 'batteryModel', 'batteryType');
+        _batteryNoController.text =
+            _getVal(data, 'batteryNo', 'batteryDetails');
+        _purchaseDateController.text =
+            _getVal(data, 'purchaseDate', 'purchase_date');
+
+        _totalAmountController.text =
+            _getVal(data, 'totalAmount', 'Total Amount');
+        _pendingAmountController.text =
+            _getVal(data, 'pendingAmount', 'Pending Amount');
+        _monthlyEmiController.text = _getVal(data, 'monthlyEmi', 'Monthly EMI');
+        _financerController.text = _getVal(data, 'financerName', 'Financer');
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _loadExistingData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('customers')
-        .doc(widget.customerId)
-        .get();
-
-    if (doc.exists && mounted) {
-      final data = doc.data() as Map<String, dynamic>;
-      _nameController.text = (data['name'] ?? '').toString();
-      _phoneController.text = (data['phone'] ?? '').toString();
-      _vehicleNoController.text = (data['vehicleNo'] ?? '').toString();
-      _modelController.text = (data['model'] ?? '').toString();
-      _pendingAmountController.text = (data['pendingAmount'] ?? '0').toString();
-      _totalEmiController.text = (data['totalEmi'] ?? '12').toString();
-      final docs = data['documents'] as Map<String, dynamic>? ?? {};
-      _rcUrlController.text = (docs['rc_url'] ?? '').toString();
-      setState(() {});
-    }
-  }
-
-  Future<void> _saveVehicleRecord() async {
+  Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
-
     try {
-      final payload = {
+      final double total =
+          double.tryParse(_totalAmountController.text.trim()) ?? 0.0;
+      final double pending =
+          double.tryParse(_pendingAmountController.text.trim()) ?? 0.0;
+      final double monthly =
+          double.tryParse(_monthlyEmiController.text.trim()) ?? 0.0;
+
+      await FirebaseFirestore.instance
+          .collection('Customers')
+          .doc(widget.customerId)
+          .set({
         'name': _nameController.text.trim(),
+        'Name': _nameController.text.trim(),
+        'fatherName': _fatherNameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'vehicleNo': _vehicleNoController.text.trim().toUpperCase(),
-        'model': _modelController.text.trim(),
-        'pendingAmount':
-            num.tryParse(_pendingAmountController.text.trim()) ?? 0,
-        'totalEmi': int.tryParse(_totalEmiController.text.trim()) ?? 12,
-        'documents': {
-          'rc_url': _rcUrlController.text.trim(),
-          'insurance_url': '',
-          'battery_card_url': '',
-          'aadhaar_url': '',
-        },
-      };
+        'Phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'Address': _addressController.text.trim(),
+        'vehicleModel': _modelController.text.trim(),
+        'Vehicle Model': _modelController.text.trim(),
+        'vehicleNumber': _vehicleNoController.text.trim(),
+        'Vehicle Number': _vehicleNoController.text.trim(),
+        'chassisNumber': _chassisController.text.trim(),
+        'Chassis Number': _chassisController.text.trim(),
+        'batteryModel': _batteryModelController.text.trim(),
+        'batteryNo': _batteryNoController.text.trim(),
+        'purchaseDate': _purchaseDateController.text.trim(),
+        'totalAmount': total,
+        'pendingAmount': pending,
+        'monthlyEmi': monthly,
+        'financerName': _financerController.text.trim(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
-      if (widget.customerId != null) {
-        await FirebaseFirestore.instance
-            .collection('customers')
-            .doc(widget.customerId)
-            .update(payload);
-      } else {
-        payload['paidEmi'] = 0;
-        payload['createdAt'] = FieldValue.serverTimestamp();
-        await FirebaseFirestore.instance.collection('customers').add(payload);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: AppColors.emerald600,
-            content: Text('Customer & Vehicle details saved!'),
-          ),
-        );
-        Navigator.pop(context);
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFF0F766E),
+          content: Text('Customer details update ho gayi!'),
+        ),
+      );
+      Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.red500,
-            content: Text('Error: $e'),
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: Colors.red, content: Text('Error: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.slate100,
-      appBar: AppBar(
-        title: Text(
-          widget.customerId != null
-              ? 'Edit Customer Details'
-              : 'New Vehicle Onboarding',
-          style: AppText.heading,
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _sectionHeader('DRIVER & VEHICLE DETAILS'),
-              _buildInputCard([
-                _buildField(
-                  'Driver Full Name',
-                  _nameController,
-                  Icons.person_outline,
-                ),
-                const SizedBox(height: 12),
-                _buildField(
-                  'Phone Number',
-                  _phoneController,
-                  Icons.phone_outlined,
-                  keyboard: TextInputType.phone,
-                ),
-                const SizedBox(height: 12),
-                _buildField(
-                  'Vehicle Registration No (RC)',
-                  _vehicleNoController,
-                  Icons.pin_outlined,
-                ),
-                const SizedBox(height: 12),
-                _buildField(
-                  'Model (e.g. Mayuri Deluxe / Yatri)',
-                  _modelController,
-                  Icons.electric_rickshaw_outlined,
-                ),
-              ]),
-              const SizedBox(height: 20),
-              _sectionHeader('EMI & BALANCE KHATA'),
-              _buildInputCard([
-                _buildField(
-                  'Due Balance (₹)',
-                  _pendingAmountController,
-                  Icons.currency_rupee_rounded,
-                  keyboard: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                _buildField(
-                  'Total Installments (Tenure)',
-                  _totalEmiController,
-                  Icons.calendar_month_outlined,
-                  keyboard: TextInputType.number,
-                ),
-              ]),
-              const SizedBox(height: 20),
-              _sectionHeader('CLOUD DOCUMENT LINK (Cloudinary/Storage)'),
-              _buildInputCard([
-                _buildField(
-                  'RC Document Image URL',
-                  _rcUrlController,
-                  Icons.link_rounded,
-                ),
-              ]),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.slate900,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _isSaving ? null : _saveVehicleRecord,
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save & Update Record',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title) {
+  Widget _sectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
-          color: AppColors.slate500,
-          letterSpacing: 0.5,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Color(0xFF0F172A)),
+      ),
+    );
+  }
+
+  Widget _editField(TextEditingController controller, String label,
+      {bool isNumber = false, bool isRequired = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        validator: isRequired
+            ? (v) => (v == null || v.trim().isEmpty) ? 'Zaroori field' : null
+            : null,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
         ),
       ),
     );
   }
 
-  Widget _buildInputCard(List<Widget> children) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(children: children),
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
-  Widget _buildField(
-    String label,
-    TextEditingController controller,
-    IconData icon, {
-    TextInputType keyboard = TextInputType.text,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboard,
-      validator: (val) =>
-          (val == null || val.trim().isEmpty) ? 'Required field' : null,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.slate500, size: 20),
-        filled: true,
-        fillColor: const Color(0xFFF8FAFC),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.cardBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.cardBorder),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text('Edit Customer Record'),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
+        elevation: 0.5,
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _sectionTitle('Customer Details'),
+            _editField(_nameController, 'Vehicle Owner Name', isRequired: true),
+            _editField(_fatherNameController, 'Father / Husband Name'),
+            _editField(_phoneController, 'Mobile Number',
+                isNumber: true, isRequired: true),
+            _editField(_addressController, 'Address / Village'),
+            _sectionTitle('Vehicle & Battery Details'),
+            _editField(_modelController, 'Vehicle Model'),
+            _editField(_vehicleNoController, 'Vehicle Registration No (RC)'),
+            _editField(_chassisController, 'Chassis Number', isRequired: true),
+            Row(
+              children: [
+                Expanded(
+                    child:
+                        _editField(_batteryModelController, 'Battery Model')),
+                const SizedBox(width: 8),
+                Expanded(
+                    child:
+                        _editField(_batteryNoController, 'Battery Serial No')),
+              ],
+            ),
+            _editField(
+                _purchaseDateController, 'Date of Purchase (DD/MM/YYYY)'),
+            _sectionTitle('Ledger / Financing Details'),
+            _editField(_totalAmountController, 'Total Amount (₹)',
+                isNumber: true),
+            _editField(_pendingAmountController, 'Pending Amount / Balance (₹)',
+                isNumber: true),
+            Row(
+              children: [
+                Expanded(
+                    child: _editField(_monthlyEmiController, 'Monthly EMI (₹)',
+                        isNumber: true)),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: _editField(_financerController, 'Financer Name')),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: _isSaving ? null : _saveChanges,
+              child: _isSaving
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Update & Save Changes',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+            const SizedBox(height: 30),
+          ],
         ),
       ),
     );

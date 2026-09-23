@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../theme/app_theme.dart';
+import 'package:flutter/material.dart';
 
 class AdminProductsPage extends StatefulWidget {
   const AdminProductsPage({super.key});
@@ -11,320 +10,292 @@ class AdminProductsPage extends StatefulWidget {
 
 class _AdminProductsPageState extends State<AdminProductsPage> {
   final _nameController = TextEditingController();
+  final _partNoController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
-  final _descController = TextEditingController();
-  String _selectedCategory = 'Batteries';
+  String _selectedCategory = 'Spare Parts';
   bool _isSaving = false;
 
   final List<String> _categories = [
     'Batteries',
-    'Spare Parts & Motors',
-    'Chargers & Controllers',
-    'Full Vehicles (E-Rickshaw)',
+    'Chargers',
+    'Motors & Controllers',
+    'Tyres & Rims',
+    'Spare Parts',
     'Accessories',
   ];
 
-  void _showAddProductModal(BuildContext context) {
-    _nameController.clear();
-    _priceController.clear();
-    _stockController.clear();
-    _descController.clear();
-    _selectedCategory = 'Batteries';
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _partNoController.dispose();
+    _priceController.dispose();
+    _stockController.dispose();
+    super.dispose();
+  }
 
-    showModalBottomSheet(
+  void _openProductDialog({String? docId, Map<String, dynamic>? existingData}) {
+    final bool isEdit = docId != null;
+
+    if (isEdit) {
+      _nameController.text = existingData?['name']?.toString() ?? '';
+      _partNoController.text = existingData?['partNumber']?.toString() ?? '';
+      _priceController.text = existingData?['price']?.toString() ?? '0';
+      _stockController.text = existingData?['stock']?.toString() ?? '0';
+      _selectedCategory =
+          existingData?['category']?.toString() ?? 'Spare Parts';
+    } else {
+      _nameController.clear();
+      _partNoController.clear();
+      _priceController.clear();
+      _stockController.clear();
+      _selectedCategory = 'Spare Parts';
+    }
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        builder: (context, setDialogState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            isEdit ? 'Edit Item Details' : 'Add New Inventory Item',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Add Inventory Item', style: AppText.heading),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Item / Product Name',
-                  prefixIcon: const Icon(
-                    Icons.inventory_2_outlined,
-                    color: AppColors.slate500,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.slate100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
+                  items: _categories
+                      .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c, style: const TextStyle(fontSize: 13))))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => _selectedCategory = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Part / Product Name',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  filled: true,
-                  fillColor: AppColors.slate100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _partNoController,
+                  decoration: InputDecoration(
+                    labelText: 'Part Number / Model Code (Optional)',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
-                items: _categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setModalState(() => _selectedCategory = val);
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _priceController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Price (₹)',
-                        prefixIcon: const Icon(
-                          Icons.currency_rupee_rounded,
-                          color: AppColors.slate500,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.slate100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _priceController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Selling Price (₹)',
+                          prefixIcon:
+                              const Icon(Icons.currency_rupee, size: 18),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stockController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Stock Units',
-                        prefixIcon: const Icon(
-                          Icons.format_list_numbered_rounded,
-                          color: AppColors.slate500,
-                        ),
-                        filled: true,
-                        fillColor: AppColors.slate100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _stockController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Stock Units',
+                          prefixIcon: const Icon(Icons.inventory, size: 18),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: 'Description / Model compatibility',
-                  filled: true,
-                  fillColor: AppColors.slate100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.slate900,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: _isSaving ? null : () => _addProduct(ctx),
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Add to Stock',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: _isSaving
+                  ? null
+                  : () async {
+                      if (_nameController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Item name bharna zaroori hai')),
+                        );
+                        return;
+                      }
+
+                      final double price =
+                          double.tryParse(_priceController.text.trim()) ?? 0.0;
+                      final int stock =
+                          int.tryParse(_stockController.text.trim()) ?? 0;
+
+                      setDialogState(() => _isSaving = true);
+                      Navigator.pop(ctx);
+
+                      final payload = {
+                        'name': _nameController.text.trim(),
+                        'category': _selectedCategory,
+                        'partNumber': _partNoController.text.trim(),
+                        'price': price,
+                        'stock': stock,
+                        'updatedAt': FieldValue.serverTimestamp(),
+                      };
+
+                      if (isEdit) {
+                        await FirebaseFirestore.instance
+                            .collection('Products')
+                            .doc(docId)
+                            .update(payload);
+                      } else {
+                        payload['createdAt'] = FieldValue.serverTimestamp();
+                        await FirebaseFirestore.instance
+                            .collection('Products')
+                            .add(payload);
+                      }
+
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF0F766E),
+                          content: Text(isEdit
+                              ? 'Item updated!'
+                              : 'Item inventory me add ho gaya!'),
+                        ),
+                      );
+                    },
+              child: Text(isEdit ? 'Update' : 'Add Item'),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _addProduct(BuildContext modalCtx) async {
-    if (_nameController.text.trim().isEmpty ||
-        _priceController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter valid product name and price'),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-
-    try {
-      await FirebaseFirestore.instance.collection('products').add({
-        'name': _nameController.text.trim(),
-        'category': _selectedCategory,
-        'price': num.tryParse(_priceController.text.trim()) ?? 0,
-        'stock': int.tryParse(_stockController.text.trim()) ?? 0,
-        'description': _descController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (!mounted) return;
-      if (!modalCtx.mounted) return;
-
-      Navigator.of(modalCtx).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.emerald600,
-          content: Text('Inventory item added successfully!'),
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.red500,
-            content: Text('Error: $e'),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
-    }
+  Future<void> _adjustStock(String docId, int currentStock, int change) async {
+    final int updatedStock = (currentStock + change).clamp(0, 999999);
+    await FirebaseFirestore.instance.collection('Products').doc(docId).update({
+      'stock': updatedStock,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.slate100,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Spare Parts & Stock', style: AppText.heading),
+        title: const Text('Inventory & Spare Parts'),
         backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
         elevation: 0.5,
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.slate900,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_shopping_cart_rounded),
-        label: const Text('Add Stock Item'),
-        onPressed: () => _showAddProductModal(context),
+        backgroundColor: const Color(0xFF0F766E),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add Item',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () => _openProductDialog(),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('products').snapshots(),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('Products')
+            .orderBy('category')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.emerald600),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data?.docs ?? [];
-
-          if (docs.isEmpty) {
-            return Center(
+          final items = snapshot.data?.docs ?? [];
+          if (items.isEmpty) {
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 64,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'No Items in Inventory',
-                    style: AppText.subHeading,
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Add batteries, parts, and chargers to manage dealership stock.',
-                    style: AppText.caption,
-                  ),
+                  Icon(Icons.inventory_2_outlined,
+                      size: 54, color: Colors.grey),
+                  SizedBox(height: 12),
+                  Text('Inventory khali hai. Naya samaan add karein.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14)),
                 ],
               ),
             );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            itemCount: items.length,
             itemBuilder: (context, index) {
-              final product = docs[index].data() as Map<String, dynamic>;
-              final name = (product['name'] ?? 'Product').toString();
-              final category = (product['category'] ?? 'Parts').toString();
-              final price = product['price'] ?? 0;
-              final stock = product['stock'] ?? 0;
-
-              final bool isLowStock = (stock is num) && stock < 3;
+              final doc = items[index];
+              final data = doc.data();
+              final String name = data['name'] ?? 'Item';
+              final String category = data['category'] ?? 'General';
+              final String partNo = data['partNumber'] ?? '';
+              final double price =
+                  double.tryParse((data['price'] ?? 0).toString()) ?? 0.0;
+              final int stock =
+                  int.tryParse((data['stock'] ?? 0).toString()) ?? 0;
+              final bool isLowStock = stock <= 2;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(
+                    color:
+                        isLowStock ? Colors.red.shade300 : Colors.grey.shade300,
+                    width: isLowStock ? 1.5 : 1,
+                  ),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 24,
-                      backgroundColor: AppColors.slate100,
+                      backgroundColor: isLowStock
+                          ? Colors.red.shade50
+                          : const Color(0xFFF1F5F9),
                       child: Icon(
                         category == 'Batteries'
-                            ? Icons.battery_charging_full_rounded
-                            : Icons.build_circle_outlined,
-                        color: AppColors.slate800,
+                            ? Icons.battery_full
+                            : category == 'Chargers'
+                                ? Icons.electrical_services
+                                : Icons.handyman,
+                        color:
+                            isLowStock ? Colors.red : const Color(0xFF0F766E),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -332,17 +303,22 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name, style: AppText.subHeading),
-                          const SizedBox(height: 2),
-                          Text(category, style: AppText.caption),
+                          Text(name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                          const SizedBox(height: 3),
+                          Text(
+                            '$category ${partNo.isNotEmpty ? "• $partNo" : ""}',
+                            style: const TextStyle(
+                                fontSize: 11.5, color: Colors.grey),
+                          ),
                           const SizedBox(height: 4),
                           Text(
-                            '₹$price',
+                            'Price: ₹${price.toStringAsFixed(0)}',
                             style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.emerald600,
-                              fontSize: 14,
-                            ),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Color(0xFF0F766E)),
                           ),
                         ],
                       ),
@@ -352,25 +328,49 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isLowStock
-                                ? AppColors.red500.withValues(alpha: 0.1)
-                                : AppColors.emerald600.withValues(alpha: 0.1),
+                                ? Colors.red.shade50
+                                : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '$stock in stock',
+                            isLowStock ? 'Low Stock: $stock' : 'Stock: $stock',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.bold,
                               color: isLowStock
-                                  ? AppColors.red500
-                                  : AppColors.emerald600,
+                                  ? Colors.red.shade700
+                                  : Colors.green.shade700,
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline,
+                                  size: 20, color: Colors.grey),
+                              onPressed: stock > 0
+                                  ? () => _adjustStock(doc.id, stock, -1)
+                                  : null,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline,
+                                  size: 20, color: Color(0xFF0F766E)),
+                              onPressed: () => _adjustStock(doc.id, stock, 1),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: Colors.blueGrey),
+                              onPressed: () => _openProductDialog(
+                                  docId: doc.id, existingData: data),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
                         ),
                       ],
                     ),
