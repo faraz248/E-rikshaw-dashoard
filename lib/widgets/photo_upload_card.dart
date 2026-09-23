@@ -25,8 +25,6 @@ class PhotoUploadCard extends StatefulWidget {
 
 class _PhotoUploadCardState extends State<PhotoUploadCard> {
   bool processing = false;
-
-  // TERI IMGBB API KEY YAHAN SET HAI
   final String imgbbApiKey = 'df9cc8a402cdc3b397f324cfc343ebae';
 
   Future<void> uploadImage() async {
@@ -39,8 +37,6 @@ class _PhotoUploadCardState extends State<PhotoUploadCard> {
 
     try {
       final bytes = await pickedFile.readAsBytes();
-
-      // ImgBB API Request
       final uri = Uri.parse('https://api.imgbb.com/1/upload');
       final request = http.MultipartRequest('POST', uri)
         ..fields['key'] = imgbbApiKey
@@ -52,10 +48,8 @@ class _PhotoUploadCardState extends State<PhotoUploadCard> {
       if (response.statusCode == 200) {
         final resData = await response.stream.bytesToString();
         final jsonMap = jsonDecode(resData);
-        final downloadUrl =
-            jsonMap['data']['url']; // Direct Image URL from ImgBB
+        final downloadUrl = jsonMap['data']['url'];
 
-        // Firestore database mein URL save kar rahe hain
         await FirebaseFirestore.instance
             .collection('customers')
             .doc(widget.customerId)
@@ -83,14 +77,12 @@ class _PhotoUploadCardState extends State<PhotoUploadCard> {
     setState(() => processing = true);
 
     try {
-      // Database se link delete kar rahe hain (ImgBB free plan me direct delete nahi hota)
       await FirebaseFirestore.instance
           .collection('customers')
           .doc(widget.customerId)
           .update({
         'documents.${widget.docKey}': FieldValue.delete(),
       });
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Deleted from database'),
@@ -102,6 +94,36 @@ class _PhotoUploadCardState extends State<PhotoUploadCard> {
     } finally {
       if (mounted) setState(() => processing = false);
     }
+  }
+
+  void _viewImageFullScreen() {
+    if (widget.url == null || widget.url!.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.network(widget.url!, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -117,20 +139,24 @@ class _PhotoUploadCardState extends State<PhotoUploadCard> {
           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]),
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(8),
-              image: hasImage
-                  ? DecorationImage(
-                      image: NetworkImage(widget.url!), fit: BoxFit.cover)
+          // Thumbnail
+          GestureDetector(
+            onTap: hasImage ? _viewImageFullScreen : null,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+                image: hasImage
+                    ? DecorationImage(
+                        image: NetworkImage(widget.url!), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: !hasImage
+                  ? const Icon(Icons.image_not_supported, color: Colors.grey)
                   : null,
             ),
-            child: !hasImage
-                ? const Icon(Icons.image_not_supported, color: Colors.grey)
-                : null,
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -147,31 +173,40 @@ class _PhotoUploadCardState extends State<PhotoUploadCard> {
               ],
             ),
           ),
-          if (widget.canUpload)
-            processing
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(color: Colors.teal))
-                : Row(
-                    children: [
-                      if (hasImage)
-                        IconButton(
-                            icon: const Icon(Icons.delete,
-                                color: Colors.redAccent),
-                            onPressed: deleteImage),
-                      if (!hasImage)
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12)),
-                          onPressed: uploadImage,
-                          child: const Text('Upload',
-                              style: TextStyle(color: Colors.white)),
-                        ),
-                    ],
-                  ),
+          processing
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(color: Colors.teal))
+              : Row(
+                  children: [
+                    // EXPLICIT VIEW BUTTON ADDED HERE
+                    if (hasImage)
+                      IconButton(
+                        icon: const Icon(Icons.visibility, color: Colors.blue),
+                        tooltip: 'View Full Image',
+                        onPressed: _viewImageFullScreen,
+                      ),
+
+                    if (hasImage && widget.canUpload)
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        tooltip: 'Delete Image',
+                        onPressed: deleteImage,
+                      ),
+
+                    if (!hasImage && widget.canUpload)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12)),
+                        onPressed: uploadImage,
+                        child: const Text('Upload',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                  ],
+                ),
         ],
       ),
     );

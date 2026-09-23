@@ -16,9 +16,35 @@ class CustomerPassbookView extends StatefulWidget {
 
 class _CustomerPassbookViewState extends State<CustomerPassbookView> {
   bool uploadingProfile = false;
-
-  // TERI IMGBB API KEY YAHAN BHI SET HAI
   final String imgbbApiKey = 'df9cc8a402cdc3b397f324cfc343ebae';
+
+  void _viewImageFullScreen(String url) {
+    if (url.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image.network(url, fit: BoxFit.contain)),
+            Positioned(
+                top: 10,
+                right: 10,
+                child: IconButton(
+                    icon:
+                        const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(context)))
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _uploadProfilePhoto() async {
     final picker = ImagePicker();
@@ -29,8 +55,6 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
     setState(() => uploadingProfile = true);
     try {
       final bytes = await pickedFile.readAsBytes();
-
-      // ImgBB API Request
       final uri = Uri.parse('https://api.imgbb.com/1/upload');
       final request = http.MultipartRequest('POST', uri)
         ..fields['key'] = imgbbApiKey
@@ -43,14 +67,10 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
         final resData = await response.stream.bytesToString();
         final jsonMap = jsonDecode(resData);
         final downloadUrl = jsonMap['data']['url'];
-
-        // Firestore database mein URL save
         await FirebaseFirestore.instance
             .collection('customers')
             .doc(widget.customerId)
             .update({'profilePhoto': downloadUrl});
-      } else {
-        throw Exception('ImgBB Upload Failed');
       }
     } catch (e) {
       if (!mounted) return;
@@ -75,7 +95,6 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Name and Phone are Read-Only to prevent fraud
             Text('Name: ${data['name'] ?? 'N/A'}',
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.grey)),
@@ -84,10 +103,9 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.grey)),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Text('(Name and Mobile cannot be changed)',
-                  style: TextStyle(fontSize: 10, color: Colors.redAccent)),
-            ),
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text('(Name and Mobile cannot be changed)',
+                    style: TextStyle(fontSize: 10, color: Colors.redAccent))),
             const Divider(),
             TextField(
                 controller: fnameC,
@@ -111,7 +129,7 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                 'fatherName': fnameC.text.trim(),
                 'address': addrC.text.trim(),
               });
-              if (!mounted) return;
+              if (!context.mounted) return;
               Navigator.pop(context);
             },
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -126,47 +144,53 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text('My Ledger', style: TextStyle(color: Colors.black87)),
-        iconTheme: const IconThemeData(color: Colors.black87),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.logout, color: Colors.redAccent),
-              onPressed: () => Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (_) => const HubLoginPortal())))
-        ],
-      ),
+          backgroundColor: Colors.white,
+          title:
+              const Text('My Ledger', style: TextStyle(color: Colors.black87)),
+          iconTheme: const IconThemeData(color: Colors.black87),
+          actions: [
+            IconButton(
+                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                onPressed: () => Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const HubLoginPortal())))
+          ]),
       body: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('customers')
               .doc(widget.customerId)
               .snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData)
+            if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
+            }
+
             final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
             final docs = data['documents'] as Map<String, dynamic>? ?? {};
             final profilePhoto = data['profilePhoto'] ?? '';
+            final batteryType = data['batteryType'] ?? 'Lead-Acid';
 
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Profile Section
+                // PROFILE PHOTO WITH ZOOM FEATURE
                 Center(
                   child: Column(
                     children: [
                       Stack(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey.shade300,
-                            backgroundImage: profilePhoto.isNotEmpty
-                                ? NetworkImage(profilePhoto)
-                                : null,
-                            child: profilePhoto.isEmpty && !uploadingProfile
-                                ? const Icon(Icons.person,
-                                    size: 50, color: Colors.grey)
-                                : null,
+                          GestureDetector(
+                            onTap: () => _viewImageFullScreen(profilePhoto),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.grey.shade300,
+                              backgroundImage: profilePhoto.isNotEmpty
+                                  ? NetworkImage(profilePhoto)
+                                  : null,
+                              child: profilePhoto.isEmpty && !uploadingProfile
+                                  ? const Icon(Icons.person,
+                                      size: 50, color: Colors.grey)
+                                  : null,
+                            ),
                           ),
                           if (uploadingProfile)
                             const Positioned.fill(
@@ -196,18 +220,19 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold)),
                           IconButton(
-                            icon: const Icon(Icons.edit,
-                                size: 20, color: Colors.blue),
-                            onPressed: () => _showCustomerEditDialog(data),
-                          )
+                              icon: const Icon(Icons.edit,
+                                  size: 20, color: Colors.blue),
+                              onPressed: () => _showCustomerEditDialog(data))
                         ],
-                      )
+                      ),
+                      if (profilePhoto.isNotEmpty)
+                        const Text('(Tap photo to view full screen)',
+                            style: TextStyle(fontSize: 12, color: Colors.teal)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // Locked Registration Section
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -222,7 +247,6 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
                       const Divider(),
-                      _buildInfoRow('Vehicle Owner Name', data['name']),
                       _buildInfoRow('Chassis No.', data['chassisNumber']),
                       _buildInfoRow('Father Name', data['fatherName']),
                       _buildInfoRow('Mobile No.', data['phone']),
@@ -230,6 +254,7 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                       _buildInfoRow('Date of Purchase', data['purchaseDate']),
                       _buildInfoRow(
                           'Registration No (RC)', data['vehicleNumber']),
+                      _buildInfoRow('Battery Type', batteryType, isBold: true),
                       _buildInfoRow('Battery Model', data['batteryModel']),
                       _buildInfoRow('Battery No.', data['batteryNo']),
                       _buildInfoRow('Vehicle Model', data['vehicleModel']),
@@ -245,7 +270,6 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                 ),
                 const SizedBox(height: 20),
 
-                // Allowed Uploads for Customer
                 const Text('Identity Documents (You Can Upload/Edit)',
                     style: TextStyle(
                         color: Colors.orange, fontWeight: FontWeight.bold)),
@@ -263,7 +287,7 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                     canUpload: true,
                     customerId: widget.customerId),
                 PhotoUploadCard(
-                    title: 'DL/Bijli Bill/Niwas/Ration',
+                    title: 'DL / Electricity Receipt / Domicile',
                     docKey: 'address_proof',
                     url: docs['address_proof'],
                     canUpload: true,
@@ -276,21 +300,14 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                     customerId: widget.customerId),
                 const SizedBox(height: 20),
 
-                // Locked Docs Section
-                const Text('Vehicle & Warranty (LOCKED - Admin Only)',
-                    style: TextStyle(
+                Text('Vehicle & $batteryType Docs (LOCKED)',
+                    style: const TextStyle(
                         color: Colors.redAccent, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 PhotoUploadCard(
                     title: 'Charger Photo',
                     docKey: 'charger_photo',
                     url: docs['charger_photo'],
-                    canUpload: false,
-                    customerId: widget.customerId),
-                PhotoUploadCard(
-                    title: 'Battery Photo',
-                    docKey: 'battery_photo',
-                    url: docs['battery_photo'],
                     canUpload: false,
                     customerId: widget.customerId),
                 PhotoUploadCard(
@@ -305,6 +322,42 @@ class _CustomerPassbookViewState extends State<CustomerPassbookView> {
                     url: docs['battery_warranty'],
                     canUpload: false,
                     customerId: widget.customerId),
+
+                // CONDITIONAL RENDERING FOR CUSTOMER TOO
+                if (batteryType == 'Lithium-Ion') ...[
+                  PhotoUploadCard(
+                      title: 'Lithium Battery Photo',
+                      docKey: 'battery_1_photo',
+                      url: docs['battery_1_photo'],
+                      canUpload: false,
+                      customerId: widget.customerId),
+                ] else ...[
+                  PhotoUploadCard(
+                      title: 'Battery 1 Photo',
+                      docKey: 'battery_1_photo',
+                      url: docs['battery_1_photo'],
+                      canUpload: false,
+                      customerId: widget.customerId),
+                  PhotoUploadCard(
+                      title: 'Battery 2 Photo',
+                      docKey: 'battery_2_photo',
+                      url: docs['battery_2_photo'],
+                      canUpload: false,
+                      customerId: widget.customerId),
+                  PhotoUploadCard(
+                      title: 'Battery 3 Photo',
+                      docKey: 'battery_3_photo',
+                      url: docs['battery_3_photo'],
+                      canUpload: false,
+                      customerId: widget.customerId),
+                  PhotoUploadCard(
+                      title: 'Battery 4 Photo',
+                      docKey: 'battery_4_photo',
+                      url: docs['battery_4_photo'],
+                      canUpload: false,
+                      customerId: widget.customerId),
+                ],
+
                 PhotoUploadCard(
                     title: 'Chassis Photo',
                     docKey: 'chassis_photo',
